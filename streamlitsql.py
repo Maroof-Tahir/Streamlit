@@ -23,15 +23,15 @@ def get_connection(driver, server, database, trusted_connection, username=None, 
             )
         return conn
     except Exception as e:
-        st.error(f"Unable to connect to SQL Server instance. Error: {e}")
+        st.error(f"Unable to connect to the SQL Server instance. Error: {e}")
         return None
 
-# Get list of databases
+# Function to get a list of databases
 def get_databases(conn):
     query = "SELECT name FROM sys.databases"
     return pd.read_sql(query, conn)['name'].tolist()
 
-# Get list of tables for selected database
+# Function to get list of tables for selected database
 def get_tables(conn, database):
     try:
         conn.execute(f"USE {database}")
@@ -41,7 +41,7 @@ def get_tables(conn, database):
         st.error(f"Error fetching tables: {e}")
         return []
 
-# Fetch table data with pagination
+# Function to fetch table data with pagination
 def get_table_data(conn, database, table_name, start, limit):
     try:
         conn.execute(f"USE {database}")
@@ -51,38 +51,56 @@ def get_table_data(conn, database, table_name, start, limit):
         st.error(f"Error loading table data: {e}")
         return pd.DataFrame()
 
-# Streamlit app
-def main():
-    # State variable for connection
-    if "connection" not in st.session_state:
-        st.session_state.connection = None
+# Sidebar Navigation
+tab = st.sidebar.radio("Navigation", ["Option 1: Choose Server", "Option 2", "Option 3", "Option 4", "Option 5"])
 
-    # Step 1: Credentials Input Screen
-    if st.session_state.connection is None:
-        st.title("SQL Server Login")
+# Server selection options with images
+server_options = {
+    "Azure SQL": "https://swimburger.net/media/ppnn3pcl/azure.png",
+    "MongoDB": "https://devopsdozen.com/wp-content/uploads/2015/08/MongoDB-logo-770x330-01.png",
+    "MySQL": "https://pngimg.com/uploads/mysql/mysql_PNG22.png",
+    "PostgreSQL": "https://www.kindpng.com/picc/m/394-3944547_postgresql-logo-png-transparent-png.png",
+    "SQL Server": "https://e7.pngegg.com/pngimages/515/909/png-clipart-microsoft-sql-server-computer-servers-database-microsoft-microsoft-sql-server-server-computer.png"
+}
 
-        # Input fields for credentials
-        driver = st.text_input("Driver", value="ODBC Driver 17 for SQL Server")
-        server = st.text_input("Server", value="LENOVO-PC\\SQLEXPRESS")
-        database = st.text_input("Database", value="master")
-        trusted_connection = st.checkbox("Trusted Connection", value=True)
-        
-        username = password = None
-        if not trusted_connection:
-            username = st.text_input("Username")
-            password = st.text_input("Password", type="password")
+# Option 1: Choose Server
+if tab == "Option 1: Choose Server":
+    st.title("Step 1: Choose a Server")
+    
+    # Server selection dropdown
+    selected_server = st.selectbox("Select a Server", options=list(server_options.keys()))
+    st.image(server_options[selected_server], width=100)
 
-        # Button to submit credentials and connect
-        if st.button("Test Connection"):
-            conn = get_connection(driver, server, database, trusted_connection, username, password)
-            if conn:
-                st.session_state.connection = conn
-                st.success("Connection successful!")
+    # Save the selected server in session state
+    st.session_state["selected_server"] = selected_server
+    
+    # Database connection credentials input
+    st.header(f"Enter Credentials for {selected_server}")
+    driver = st.text_input("Driver", value="ODBC Driver 17 for SQL Server")
+    server = st.text_input("Server")
+    database = st.text_input("Database")
+    trusted_connection = st.checkbox("Trusted Connection", value=True)
+    
+    username = password = None
+    if not trusted_connection:
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
 
-    # Step 2: Main UI (only shown after successful connection)
-    if st.session_state.connection:
-        conn = st.session_state.connection
-        st.title("SQL Server Database Explorer")
+    # Test connection
+    if st.button("Connect"):
+        conn = get_connection(driver, server, database, trusted_connection, username, password)
+        if conn:
+            st.session_state["connection"] = conn
+            st.success("Connection successful!")
+        else:
+            st.error("Failed to connect. Please check your credentials.")
+
+    # Display available databases, tables, and data export options after connection
+    if "connection" in st.session_state and st.session_state["connection"]:
+        conn = st.session_state["connection"]
+
+        # Step 2: Database and Table Selection
+        st.subheader("Database Explorer")
 
         # Load databases and select
         databases = get_databases(conn)
@@ -125,13 +143,26 @@ def main():
                             file_name=f"{selected_table}.xlsx",
                             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         )
-
             else:
                 st.warning("No tables found in the selected database.")
-        
+
         # Refresh option
         if st.button("Refresh"):
             st.experimental_rerun()
 
-if __name__ == "__main__":
-    main()
+# Placeholder for Options 2, 3, 4, and 5
+elif tab == "Option 2":
+    st.title("Option 2")
+    st.write("This is a placeholder for additional functionality.")
+
+elif tab == "Option 3":
+    st.title("Option 3")
+    st.write("This is a placeholder for additional functionality.")
+
+elif tab == "Option 4":
+    st.title("Option 4")
+    st.write("This is a placeholder for additional functionality.")
+
+elif tab == "Option 5":
+    st.title("Option 5")
+    st.write("This is a placeholder for additional functionality.")
